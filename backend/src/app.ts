@@ -4,7 +4,6 @@ import cors from 'cors'
 import 'dotenv/config'
 import express, { json, urlencoded } from 'express'
 import mongoose from 'mongoose'
-import path from 'path'
 import { DB_ADDRESS } from './config'
 import errorHandler from './middlewares/error-handler'
 import serveStatic from './middlewares/serverStatic'
@@ -15,11 +14,28 @@ const app = express()
 
 app.use(cookieParser())
 
-app.use(cors())
-// app.use(cors({ origin: ORIGIN_ALLOW, credentials: true }));
+const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+app.use(
+    cors({
+        origin(origin, callback) {
+            if (!origin) {
+                return callback(null, true)
+            }
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true)
+            }
+            return callback(new Error('Not allowed by CORS'))
+        },
+        credentials: true,
+    })
+)
 // app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(serveStatic(path.join(__dirname, 'public')))
+app.use(serveStatic(`${__dirname}/public`))
 
 app.use(urlencoded({ extended: true }))
 app.use(json())
