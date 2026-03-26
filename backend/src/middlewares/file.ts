@@ -2,6 +2,8 @@ import { Request, Express } from 'express'
 import multer, { FileFilterCallback } from 'multer'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
+import { extension } from 'mime-types'
+import uniqueSlug from 'unique-slug'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
@@ -29,7 +31,9 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        cb(null, file.originalname)
+        const ext = extension(file.mimetype)
+        const safeExt = ext ? `.${ext}` : ''
+        cb(null, `${uniqueSlug()}${safeExt}`)
     },
 })
 
@@ -53,4 +57,10 @@ const fileFilter = (
     return cb(null, true)
 }
 
-export default multer({ storage, fileFilter })
+export default multer({
+    storage,
+    fileFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024,
+    },
+})
