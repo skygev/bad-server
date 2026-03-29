@@ -30,6 +30,16 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     } catch (err) {
         return next(err)
     }
+
+}
+
+// GET /auth/csrf-token
+const getCsrfToken = async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+        return res.status(200).json({ csrfToken: 'csrf-token' })
+    } catch (error) {
+        return next(error)
+    }
 }
 
 // POST /auth/register
@@ -207,6 +217,7 @@ const updateCurrentUser = async (
 }
 
 export {
+    getCsrfToken,
     getCurrentUser,
     getCurrentUserRoles,
     login,
