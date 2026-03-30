@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import fs from 'fs'
 import { constants } from 'http2'
 import sharp from 'sharp'
 import BadRequestError from '../errors/bad-request-error'
@@ -18,6 +19,23 @@ export const uploadFile = async (
 
         if (req.file.mimetype === 'image/png') {
             try {
+                const header = Buffer.from(
+                    fs.readFileSync(req.file.path).subarray(0, 8) as Uint8Array
+                )
+                const pngSignature = Buffer.from([
+                    0x89,
+                    0x50,
+                    0x4e,
+                    0x47,
+                    0x0d,
+                    0x0a,
+                    0x1a,
+                    0x0a,
+                ])
+                if (!header.equals(pngSignature)) {
+                    return next(new BadRequestError('Некорректный файл'))
+                }
+
                 const metadata = await sharp(req.file.path).metadata()
                 if (!metadata.width || !metadata.height || metadata.format !== 'png') {
                     return next(new BadRequestError('Некорректный файл'))
