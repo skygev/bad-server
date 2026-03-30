@@ -3,38 +3,18 @@ import { Input } from '@components/form'
 import Table from '@components/table'
 import TableRow from '@components/table/table-row'
 import { OrderDataList } from '@slices/orders/type'
-import { profileOrdersSelector } from '@slices/profile-orders'
-import { fetchOrdersMeWithFilters } from '@slices/profile-orders/thunk'
-import { useDispatch } from '@store/hooks'
+import { useSelector } from '@store/hooks'
 import clsx from 'clsx'
 import { ChangeEvent, FormEvent, useCallback, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { IOrderPaginationResult } from '../../utils/types'
-import Pagination from '../pagination'
-import usePagination from '../pagination/helpers/usePagination'
+import { ordersSelector } from '../../services/slice/orders'
 import styles from './profile.module.scss'
 
 export default function ProfileOrders() {
-    const dispatch = useDispatch()
     const location = useLocation()
-    // const orders = useSelector(profileOrdersSelector.selectProfileOrders);
+    const orders = useSelector(ordersSelector.selectOrders)
     const [searchParams, setSearchParams] = useSearchParams()
-    const [searchOrder, setSearchOrder] = useState<string>(
-        searchParams.get('search') || ''
-    )
-
-    const {
-        data: orders,
-        totalPages,
-        currentPage,
-        limit,
-        nextPage,
-        prevPage,
-    } = usePagination<IOrderPaginationResult, OrderDataList>(
-        fetchOrdersMeWithFilters,
-        profileOrdersSelector.selectProfileOrders,
-        5
-    )
+    const [searchOrder, setSearchOrder] = useState('')
 
     const orderColumns = [
         {
@@ -99,7 +79,7 @@ export default function ProfileOrders() {
             })
             setSearchParams({ ...filters, search: value })
         },
-        [searchParams, dispatch, setSearchParams]
+        [searchParams, setSearchParams]
     )
 
     return (
@@ -142,13 +122,6 @@ export default function ProfileOrders() {
                     )
                 }}
             </Table>
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                limit={limit}
-                onNextPage={nextPage}
-                onPrevPage={prevPage}
-            />
         </main>
     )
 }

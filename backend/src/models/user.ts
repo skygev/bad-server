@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
-import mongoose, { HydratedDocument, Model, Types } from 'mongoose'
+import mongoose, { Document, HydratedDocument, Model, Types } from 'mongoose'
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
 
