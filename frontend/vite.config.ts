@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       $fonts: resolve('./src/vendor/fonts'),
       $assets: resolve('./src/assets'),
+      $src: resolve('./src'),
     }
   },
   build: {
@@ -20,8 +21,8 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         additionalData: `
-          @use "./src/scss/variables" as *;
-          @use "./src/scss/mixins";
+          @use "$src/scss/variables" as *;
+          @use "$src/scss/mixins";
         `,
       },
 
