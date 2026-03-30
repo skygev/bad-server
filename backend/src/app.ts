@@ -14,7 +14,7 @@ const app = express()
 
 app.use(cookieParser())
 
-const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost')
+const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost,http://localhost:5173')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -37,8 +37,8 @@ app.use(
 
 app.use(serveStatic(`${__dirname}/public`))
 
-app.use(urlencoded({ extended: true }))
-app.use(json())
+app.use(urlencoded({ extended: true, limit: '1mb' }))
+app.use(json({ limit: '1mb' }))
 
 app.options('*', cors())
 app.use(routes)
