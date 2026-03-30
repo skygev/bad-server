@@ -42,7 +42,7 @@ const getCsrfToken = async (_req: Request, res: Response, next: NextFunction) =>
         const cookieSecure = (process.env.COOKIE_SECURE === 'true') || isProduction
         const cookieSameSite = (process.env.COOKIE_SAMESITE || (cookieSecure ? 'none' : 'lax')) as 'lax' | 'strict' | 'none'
 
-        res.cookie('csrfToken', token, {
+        res.cookie('_csrf', token, {
             httpOnly: false,
             sameSite: cookieSameSite,
             secure: cookieSecure,
@@ -56,8 +56,10 @@ const getCsrfToken = async (_req: Request, res: Response, next: NextFunction) =>
 }
 
 export const verifyCsrf = (req: Request, _res: Response, next: NextFunction) => {
-    const cookieToken = req.cookies?.csrfToken
-    const headerToken = req.header('X-CSRF-Token')
+    const cookies = req.cookies as Record<string, string | undefined> | undefined
+    // eslint-disable-next-line dot-notation
+    const cookieToken = cookies ? cookies['_csrf'] : undefined
+    const headerToken = req.header('X-CSRF-Token') || req.header('x-csrf-token')
 
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
         return next(new UnauthorizedError('CSRF token invalid'))
