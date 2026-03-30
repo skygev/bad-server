@@ -36,10 +36,34 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 // GET /auth/csrf-token
 const getCsrfToken = async (_req: Request, res: Response, next: NextFunction) => {
     try {
-        return res.status(200).json({ csrfToken: 'csrf-token' })
+        const token = crypto.randomBytes(32).toString('hex')
+
+        const isProduction = process.env.NODE_ENV === 'production'
+        const cookieSecure = (process.env.COOKIE_SECURE === 'true') || isProduction
+        const cookieSameSite = (process.env.COOKIE_SAMESITE || (cookieSecure ? 'none' : 'lax')) as 'lax' | 'strict' | 'none'
+
+        res.cookie('csrfToken', token, {
+            httpOnly: false,
+            sameSite: cookieSameSite,
+            secure: cookieSecure,
+            path: '/',
+        })
+
+        return res.status(200).json({ csrfToken: token })
     } catch (error) {
         return next(error)
     }
+}
+
+export const verifyCsrf = (req: Request, _res: Response, next: NextFunction) => {
+    const cookieToken = req.cookies?.csrfToken
+    const headerToken = req.header('X-CSRF-Token')
+
+    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+        return next(new UnauthorizedError('CSRF token invalid'))
+    }
+
+    return next()
 }
 
 // POST /auth/register
@@ -202,7 +226,17 @@ const updateCurrentUser = async (
 ) => {
     const userId = res.locals.user._id
     try {
-        const updatedUser = await User.findByIdAndUpdate(userId, req.body, {
+        const updateData: Record<string, unknown> = {}
+
+        if (typeof req.body?.name === 'string') {
+            updateData.name = req.body.name
+        }
+
+        if (typeof req.body?.email === 'string') {
+            updateData.email = req.body.email
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
             new: true,
         }).orFail(
             () =>

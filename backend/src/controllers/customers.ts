@@ -180,9 +180,19 @@ export const updateCustomer = async (
     next: NextFunction
 ) => {
     try {
+        const updateData: Partial<IUser> = {}
+
+        if (typeof req.body?.name === 'string') {
+            updateData.name = req.body.name
+        }
+
+        if (typeof req.body?.email === 'string') {
+            updateData.email = req.body.email
+        }
+
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             {
                 new: true,
             }
