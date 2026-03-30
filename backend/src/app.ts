@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import 'dotenv/config'
 import express, { json, urlencoded } from 'express'
+import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
 import { DB_ADDRESS } from './config'
 import errorHandler from './middlewares/error-handler'
@@ -14,6 +15,15 @@ const app = express()
 
 app.use(cookieParser())
 
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+})
+
+app.use(apiLimiter)
+
 const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost,http://localhost:5173')
     .split(',')
     .map((s) => s.trim())
@@ -21,19 +31,10 @@ const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost,http://loc
 
 app.use(
     cors({
-        origin(origin, callback) {
-            if (!origin) {
-                return callback(null, true)
-            }
-            if (allowedOrigins.includes(origin)) {
-                return callback(null, true)
-            }
-            return callback(new Error('Not allowed by CORS'))
-        },
+        origin: allowedOrigins,
         credentials: true,
     })
 )
-// app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(serveStatic(`${__dirname}/public`))
 

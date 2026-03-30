@@ -53,7 +53,6 @@ const fileFilter = (
     if (!types.includes(file.mimetype)) {
         return cb(null, false)
     }
-
     return cb(null, true)
 }
 
@@ -61,6 +60,9 @@ export default multer({
     storage,
     fileFilter,
     limits: {
+        // Multer validates *max* sizes only; minimum size is checked in controller.
         fileSize: 10 * 1024 * 1024,
+        files: 1,
+        fieldSize: 2 * 1024,
     },
 })
