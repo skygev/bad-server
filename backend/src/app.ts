@@ -23,7 +23,7 @@ const apiLimiter = rateLimit({
 })
 
 app.use((req, res, next) => {
-    if (req.path.startsWith('/auth')) {
+    if (req.path.startsWith('/auth') || req.path.startsWith('/api/auth')) {
         return next()
     }
     return apiLimiter(req, res, next)
