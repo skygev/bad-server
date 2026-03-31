@@ -22,7 +22,12 @@ const apiLimiter = rateLimit({
     legacyHeaders: false,
 })
 
-app.use(apiLimiter)
+app.use((req, res, next) => {
+    if (req.path.startsWith('/auth')) {
+        return next()
+    }
+    return apiLimiter(req, res, next)
+})
 
 const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost,http://localhost:5173')
     .split(',')

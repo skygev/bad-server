@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { FilterQuery } from 'mongoose'
 import NotFoundError from '../errors/not-found-error'
-import Order from '../models/order'
 import User, { IUser } from '../models/user'
 import escapeRegExp from '../utils/escapeRegExp'
 
@@ -97,18 +96,10 @@ export const getCustomers = async (
 
         if (search) {
             const searchRegex = new RegExp(escapeRegExp(search as string), 'i')
-            const orders = await Order.find(
-                {
-                    $or: [{ deliveryAddress: searchRegex }],
-                },
-                '_id'
-            )
-
-            const orderIds = orders.map((order) => order._id)
-
             filters.$or = [
                 { name: searchRegex },
-                { lastOrder: { $in: orderIds } },
+                { email: searchRegex },
+                { phone: searchRegex },
             ]
         }
 
@@ -124,21 +115,7 @@ export const getCustomers = async (
             limit: normalizedLimit,
         }
 
-        const users = await User.find(filters, null, options).populate([
-            'orders',
-            {
-                path: 'lastOrder',
-                populate: {
-                    path: 'products',
-                },
-            },
-            {
-                path: 'lastOrder',
-                populate: {
-                    path: 'customer',
-                },
-            },
-        ])
+        const users = await User.find(filters, null, options)
 
         const totalUsers = await User.countDocuments(filters)
         const totalPages = Math.ceil(totalUsers / normalizedLimit)
