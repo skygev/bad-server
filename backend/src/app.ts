@@ -3,8 +3,8 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import 'dotenv/config'
 import express, { json, urlencoded } from 'express'
+import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
-import path from 'path'
 import { DB_ADDRESS } from './config'
 import errorHandler from './middlewares/error-handler'
 import serveStatic from './middlewares/serverStatic'
@@ -15,14 +15,36 @@ const app = express()
 
 app.use(cookieParser())
 
-app.use(cors())
-// app.use(cors({ origin: ORIGIN_ALLOW, credentials: true }));
-// app.use(express.static(path.join(__dirname, 'public')));
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+})
 
-app.use(serveStatic(path.join(__dirname, 'public')))
+app.use((req, res, next) => {
+    if (req.path.startsWith('/auth') || req.path.startsWith('/api/auth')) {
+        return next()
+    }
+    return apiLimiter(req, res, next)
+})
 
-app.use(urlencoded({ extended: true }))
-app.use(json())
+const allowedOrigins = (process.env.ORIGIN_ALLOW || 'http://localhost,http://localhost:5173')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+app.use(
+    cors({
+        origin: allowedOrigins,
+        credentials: true,
+    })
+)
+
+app.use(serveStatic(`${__dirname}/public`))
+
+app.use(urlencoded({ extended: true, limit: '1mb' }))
+app.use(json({ limit: '1mb' }))
 
 app.options('*', cors())
 app.use(routes)

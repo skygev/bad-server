@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express'
 import { FilterQuery } from 'mongoose'
 import NotFoundError from '../errors/not-found-error'
-import Order from '../models/order'
 import User, { IUser } from '../models/user'
+import escapeRegExp from '../utils/escapeRegExp'
 
 // TODO: Добавить guard admin
 // eslint-disable-next-line max-len
@@ -28,6 +28,9 @@ export const getCustomers = async (
             orderCountTo,
             search,
         } = req.query
+
+        const normalizedLimit = Math.min(Math.max(Number(limit) || 10, 1), 10)
+        const normalizedPage = Math.max(Number(page) || 1, 1)
 
         const filters: FilterQuery<Partial<IUser>> = {}
 
@@ -92,19 +95,11 @@ export const getCustomers = async (
         }
 
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i')
-            const orders = await Order.find(
-                {
-                    $or: [{ deliveryAddress: searchRegex }],
-                },
-                '_id'
-            )
-
-            const orderIds = orders.map((order) => order._id)
-
+            const searchRegex = new RegExp(escapeRegExp(search as string), 'i')
             filters.$or = [
                 { name: searchRegex },
-                { lastOrder: { $in: orderIds } },
+                { email: searchRegex },
+                { phone: searchRegex },
             ]
         }
 
@@ -116,36 +111,22 @@ export const getCustomers = async (
 
         const options = {
             sort,
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
+            skip: (normalizedPage - 1) * normalizedLimit,
+            limit: normalizedLimit,
         }
 
-        const users = await User.find(filters, null, options).populate([
-            'orders',
-            {
-                path: 'lastOrder',
-                populate: {
-                    path: 'products',
-                },
-            },
-            {
-                path: 'lastOrder',
-                populate: {
-                    path: 'customer',
-                },
-            },
-        ])
+        const users = await User.find(filters, null, options)
 
         const totalUsers = await User.countDocuments(filters)
-        const totalPages = Math.ceil(totalUsers / Number(limit))
+        const totalPages = Math.ceil(totalUsers / normalizedLimit)
 
         res.status(200).json({
             customers: users,
             pagination: {
                 totalUsers,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: normalizedPage,
+                pageSize: normalizedLimit,
             },
         })
     } catch (error) {
@@ -179,9 +160,19 @@ export const updateCustomer = async (
     next: NextFunction
 ) => {
     try {
+        const updateData: Partial<IUser> = {}
+
+        if (typeof req.body?.name === 'string') {
+            updateData.name = req.body.name
+        }
+
+        if (typeof req.body?.email === 'string') {
+            updateData.email = req.body.email
+        }
+
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             {
                 new: true,
             }

@@ -8,6 +8,10 @@ export const ACCESS_TOKEN = {
     secret: process.env.AUTH_ACCESS_TOKEN_SECRET || 'secret-dev',
     expiry: process.env.AUTH_ACCESS_TOKEN_EXPIRY || '10m',
 }
+
+const isProduction = process.env.NODE_ENV === 'production'
+const cookieSecure = (process.env.COOKIE_SECURE === 'true') || isProduction
+const cookieSameSite = (process.env.COOKIE_SAMESITE || (cookieSecure ? 'none' : 'lax')) as CookieOptions['sameSite']
 export const REFRESH_TOKEN = {
     secret: process.env.AUTH_REFRESH_TOKEN_SECRET || 'secret-dev',
     expiry: process.env.AUTH_REFRESH_TOKEN_EXPIRY || '7d',
@@ -15,8 +19,8 @@ export const REFRESH_TOKEN = {
         name: 'refreshToken',
         options: {
             httpOnly: true,
-            sameSite: 'lax',
-            secure: false,
+            sameSite: cookieSameSite,
+            secure: cookieSecure,
             maxAge: ms(process.env.AUTH_REFRESH_TOKEN_EXPIRY || '7d'),
             path: '/',
         } as CookieOptions,

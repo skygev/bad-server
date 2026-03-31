@@ -2,6 +2,7 @@ import { Request, Express } from 'express'
 import multer, { FileFilterCallback } from 'multer'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
+import uniqueSlug from 'unique-slug'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
@@ -29,7 +30,10 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        cb(null, file.originalname)
+        const parts = file.originalname.split('.')
+        const ext = parts.length > 1 ? parts.pop() : undefined
+        const safeExt = ext && /^[a-z0-9]+$/i.test(ext) ? `.${ext.toLowerCase()}` : ''
+        cb(null, `${uniqueSlug()}${safeExt}`)
     },
 })
 
@@ -49,8 +53,16 @@ const fileFilter = (
     if (!types.includes(file.mimetype)) {
         return cb(null, false)
     }
-
     return cb(null, true)
 }
 
-export default multer({ storage, fileFilter })
+export default multer({
+    storage,
+    fileFilter,
+    limits: {
+        // Multer validates *max* sizes only; minimum size is checked in controller.
+        fileSize: 10 * 1024 * 1024,
+        files: 1,
+        fieldSize: 2 * 1024,
+    },
+})
